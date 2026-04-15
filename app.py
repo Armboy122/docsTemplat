@@ -21,228 +21,169 @@ st.set_page_config(
 # ─── Custom CSS ───────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
-/* ── Base & Typography ────────────────────────────────────────────────────── */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Sarabun:wght@300;400;500;600&display=swap');
+/* ── Reset & base ─────────────────────────────────────────────────────────── */
+/* สีข้อความหลักทุกที่ใช้ theme textColor (#1C1917) — ไม่ override ที่นี่    */
 
-html, body, [class*="css"] {
-    font-family: 'Sarabun', 'Inter', sans-serif;
-}
+/* ── Layout ───────────────────────────────────────────────────────────────── */
+.block-container { padding-top: 2rem !important; max-width: 860px !important; }
 
-/* ── Background ───────────────────────────────────────────────────────────── */
-.stApp {
-    background-color: #FAF9F6;
-}
-
-/* ── Sidebar ──────────────────────────────────────────────────────────────── */
+/* ── Sidebar border ───────────────────────────────────────────────────────── */
 [data-testid="stSidebar"] {
-    background-color: #FFFFFF;
-    border-right: 1px solid #EEEBE4;
+    border-right: 1px solid #E7E2DA;
 }
-[data-testid="stSidebar"] .stMarkdown h1,
-[data-testid="stSidebar"] .stMarkdown h2,
-[data-testid="stSidebar"] .stMarkdown h3,
-[data-testid="stSidebar"] .stMarkdown h4 {
-    color: #2C2C2C;
+
+/* ── Section label (ใช้ใน HTML component เท่านั้น ไม่ override Streamlit) ── */
+.section-label {
+    font-size: 0.72rem;
     font-weight: 600;
+    color: #78716C;          /* stone-500 — contrast 4.7:1 บนพื้นขาว ✓ */
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
 }
-[data-testid="stSidebar"] .stRadio label {
-    font-size: 0.9rem;
-    color: #555;
-}
-
-/* ── Main Header ──────────────────────────────────────────────────────────── */
-.main-header {
-    padding: 2rem 0 0.5rem 0;
-    border-bottom: 1px solid #EEEBE4;
-    margin-bottom: 2rem;
-}
-.main-header h1 {
-    font-size: 1.8rem;
+.section-label-th {
+    font-size: 0.8rem;
     font-weight: 600;
-    color: #1A1A1A;
-    margin: 0;
-    letter-spacing: -0.02em;
-}
-.main-header p {
-    color: #888;
-    font-size: 0.9rem;
-    margin: 0.25rem 0 0 0;
+    color: #57534E;          /* stone-600 — contrast 7.2:1 ✓ */
+    margin-bottom: 0.5rem;
 }
 
-/* ── Cards ────────────────────────────────────────────────────────────────── */
-.card {
-    background: #FFFFFF;
-    border: 1px solid #EEEBE4;
-    border-radius: 12px;
-    padding: 1.5rem;
-    margin-bottom: 1rem;
-}
-
-/* ── Step Indicator ───────────────────────────────────────────────────────── */
-.step-container {
+/* ── Step indicator ───────────────────────────────────────────────────────── */
+.step-wrap {
     display: flex;
     align-items: center;
     gap: 0;
-    margin-bottom: 2rem;
-}
-.step-item {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    flex: 1;
-}
-.step-dot {
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.75rem;
-    font-weight: 600;
-    flex-shrink: 0;
-}
-.step-dot.done   { background: #2C2C2C; color: #FFFFFF; }
-.step-dot.active { background: #C8A96E; color: #FFFFFF; }
-.step-dot.idle   { background: #EEEBE4; color: #AAA; }
-.step-label {
-    font-size: 0.82rem;
-    font-weight: 500;
-}
-.step-label.done   { color: #2C2C2C; }
-.step-label.active { color: #C8A96E; }
-.step-label.idle   { color: #BBB; }
-.step-line {
-    height: 1px;
-    flex: 0.5;
-    background: #EEEBE4;
-    margin: 0 0.25rem;
-}
-
-/* ── Upload Area ──────────────────────────────────────────────────────────── */
-[data-testid="stFileUploader"] {
+    margin-bottom: 1.75rem;
+    padding: 1rem 1.25rem;
     background: #FFFFFF;
-    border: 1.5px dashed #D9D4CA;
+    border: 1px solid #E7E2DA;
     border-radius: 12px;
-    padding: 0.5rem;
-    transition: border-color 0.2s;
 }
-[data-testid="stFileUploader"]:hover {
-    border-color: #C8A96E;
+.step-item { display: flex; align-items: center; gap: 0.5rem; flex: 1; }
+.step-dot {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.72rem; font-weight: 700; flex-shrink: 0;
 }
+.step-dot.done   { background: #1C1917; color: #FFF; }
+.step-dot.active { background: #A8956A; color: #FFF; }
+.step-dot.idle   { background: #E7E2DA; color: #78716C; }
+.step-label { font-size: 0.85rem; font-weight: 500; }
+.step-label.done   { color: #1C1917; }
+.step-label.active { color: #7C6A4A; }
+.step-label.idle   { color: #A8A29E; }       /* stone-400 — decorative only */
+.step-line { height: 1px; flex: 0.4; background: #E7E2DA; margin: 0 0.25rem; }
 
-/* ── Form & Inputs ────────────────────────────────────────────────────────── */
-.stTextInput input,
-.stTextArea textarea,
-.stNumberInput input,
-.stDateInput input {
-    border: 1px solid #DDD9D0 !important;
-    border-radius: 8px !important;
-    background: #FFFFFF !important;
-    font-family: 'Sarabun', 'Inter', sans-serif !important;
-    color: #2C2C2C !important;
-    transition: border-color 0.2s !important;
-}
-.stTextInput input:focus,
-.stTextArea textarea:focus,
-.stNumberInput input:focus {
-    border-color: #C8A96E !important;
-    box-shadow: 0 0 0 3px rgba(200,169,110,0.12) !important;
-}
-.stTextInput label,
-.stTextArea label,
-.stNumberInput label,
-.stDateInput label {
-    font-size: 0.82rem !important;
-    font-weight: 500 !important;
-    color: #555 !important;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-}
-
-/* ── Buttons ──────────────────────────────────────────────────────────────── */
-.stButton > button[kind="primary"],
-.stFormSubmitButton > button[kind="primary"] {
-    background: #2C2C2C !important;
-    color: #FFFFFF !important;
-    border: none !important;
-    border-radius: 8px !important;
-    font-weight: 500 !important;
-    font-size: 0.9rem !important;
-    padding: 0.6rem 1.5rem !important;
-    transition: background 0.2s, transform 0.1s !important;
-    letter-spacing: 0.01em;
-}
-.stButton > button[kind="primary"]:hover,
-.stFormSubmitButton > button[kind="primary"]:hover {
-    background: #444 !important;
-    transform: translateY(-1px);
-}
-.stButton > button[kind="secondary"] {
-    background: transparent !important;
-    border: 1px solid #DDD9D0 !important;
-    color: #555 !important;
-    border-radius: 8px !important;
-}
-.stDownloadButton > button {
-    background: #F5F0E8 !important;
-    color: #2C2C2C !important;
-    border: 1px solid #DDD9D0 !important;
-    border-radius: 8px !important;
-    font-weight: 500 !important;
-}
-.stDownloadButton > button:hover {
-    background: #EDE6D6 !important;
-    border-color: #C8A96E !important;
-}
-
-/* ── Alerts ───────────────────────────────────────────────────────────────── */
-[data-testid="stAlert"] {
-    border-radius: 8px !important;
-    border-left-width: 3px !important;
-}
-
-/* ── Info box ─────────────────────────────────────────────────────────────── */
+/* ── Variable badge ───────────────────────────────────────────────────────── */
 .var-badge {
     display: inline-block;
-    background: #F5F0E8;
-    color: #8B6914;
-    border: 1px solid #E8DCC8;
+    background: #F5EFE4;
+    color: #6B4F1E;          /* contrast 7.5:1 บน #F5EFE4 ✓ */
+    border: 1px solid #E2D4B8;
     border-radius: 5px;
-    padding: 1px 8px;
+    padding: 2px 9px;
     font-size: 0.78rem;
     font-family: 'Courier New', monospace;
-    margin: 2px;
+    font-weight: 600;
+    margin: 2px 2px;
 }
 
-/* ── Divider ──────────────────────────────────────────────────────────────── */
-hr {
+/* ── Info panel ───────────────────────────────────────────────────────────── */
+.info-panel {
+    background: #FFFFFF;
+    border: 1px solid #E7E2DA;
+    border-radius: 10px;
+    padding: 0.875rem 1.125rem;
+    margin-bottom: 1.25rem;
+}
+.info-panel-title {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #78716C;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+}
+
+/* ── Stat card ────────────────────────────────────────────────────────────── */
+.stat-card {
+    background: #FFFFFF;
+    border: 1px solid #E7E2DA;
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+}
+.stat-card-label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #78716C;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+.stat-card-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #1C1917;
+    margin-top: 0.1rem;
+    line-height: 1;
+}
+
+/* ── Input border polish (ไม่แตะสีตัวอักษร) ─────────────────────────────── */
+input[type="text"],
+input[type="number"],
+textarea {
+    border-radius: 8px !important;
+    border-color: #D6D0C8 !important;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+input[type="text"]:focus,
+input[type="number"]:focus,
+textarea:focus {
+    border-color: #A8956A !important;
+    box-shadow: 0 0 0 3px rgba(168,149,106,0.15) !important;
+}
+
+/* ── Primary button ───────────────────────────────────────────────────────── */
+[data-testid="stFormSubmitButton"] button,
+button[kind="primary"] {
+    background: #1C1917 !important;
+    color: #F8F6F1 !important;
     border: none !important;
-    border-top: 1px solid #EEEBE4 !important;
-    margin: 1.5rem 0 !important;
+    border-radius: 8px !important;
+    font-weight: 500 !important;
+    transition: background 0.15s !important;
+}
+[data-testid="stFormSubmitButton"] button:hover,
+button[kind="primary"]:hover {
+    background: #3C3430 !important;
 }
 
-/* ── Dataframe ────────────────────────────────────────────────────────────── */
-[data-testid="stDataFrame"] {
-    border: 1px solid #EEEBE4;
-    border-radius: 8px;
-    overflow: hidden;
+/* ── Download button ──────────────────────────────────────────────────────── */
+[data-testid="stDownloadButton"] button {
+    background: #FFFFFF !important;
+    color: #1C1917 !important;
+    border: 1.5px solid #C8BFB0 !important;
+    border-radius: 8px !important;
+    font-weight: 500 !important;
+    transition: border-color 0.15s, background 0.15s !important;
+}
+[data-testid="stDownloadButton"] button:hover {
+    background: #F5EFE4 !important;
+    border-color: #A8956A !important;
 }
 
 /* ── Progress bar ─────────────────────────────────────────────────────────── */
-.stProgress > div > div {
-    background-color: #C8A96E !important;
-    border-radius: 4px;
+[data-testid="stProgressBar"] > div {
+    background-color: #A8956A !important;
+    border-radius: 4px !important;
 }
 
 /* ── Expander ─────────────────────────────────────────────────────────────── */
-[data-testid="stExpander"] {
-    border: 1px solid #EEEBE4 !important;
-    border-radius: 10px !important;
-    background: #FFFFFF !important;
+[data-testid="stExpander"] summary {
+    font-weight: 500;
 }
 
-/* ── Hide Streamlit branding ──────────────────────────────────────────────── */
+/* ── Hide branding ────────────────────────────────────────────────────────── */
 #MainMenu, footer { visibility: hidden; }
 </style>
 """, unsafe_allow_html=True)
@@ -370,25 +311,22 @@ def show_steps(current: int):
 # ─── Sidebar ──────────────────────────────────────────────────────────────────
 with st.sidebar:
     st.markdown("""
-    <div style="padding: 0.5rem 0 1rem 0;">
-        <div style="font-size: 1.5rem; margin-bottom: 0.25rem;">📄</div>
-        <div style="font-size: 1.1rem; font-weight: 600; color: #1A1A1A;">DocsFill</div>
-        <div style="font-size: 0.78rem; color: #AAA; margin-top: 0.1rem;">Word Template Filler · v2.0</div>
+    <div style="padding:0.25rem 0 1.25rem 0; border-bottom:1px solid #E7E2DA; margin-bottom:1rem;">
+        <div style="font-size:1.4rem; line-height:1; margin-bottom:0.35rem;">📄</div>
+        <div style="font-size:1.05rem; font-weight:700; color:#1C1917; letter-spacing:-0.01em;">DocsFill</div>
+        <div style="font-size:0.78rem; color:#57534E; margin-top:0.2rem;">Word Template Filler · v2.0</div>
     </div>
     """, unsafe_allow_html=True)
-
-    st.divider()
 
     mode = st.radio(
         "โหมดการใช้งาน",
         ["Single — กรอกทีละเอกสาร", "Batch — สร้างจาก CSV"],
         help="Single: กรอกข้อมูลเองทีละชุด | Batch: นำเข้า CSV สร้างหลายไฟล์พร้อมกัน",
-        label_visibility="visible",
     )
 
     st.divider()
 
-    st.markdown('<p style="font-size:0.78rem;font-weight:600;color:#AAA;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.5rem;">ตัวอย่าง Template</p>', unsafe_allow_html=True)
+    st.markdown('<p class="section-label-th">ตัวอย่าง Template</p>', unsafe_allow_html=True)
     st.caption("หนังสือรับรองการทำงาน พร้อมตัวแปรครบ")
     st.download_button(
         label="ดาวน์โหลด Sample .docx",
@@ -400,12 +338,10 @@ with st.sidebar:
 
     st.divider()
 
-    st.markdown('<p style="font-size:0.78rem;font-weight:600;color:#AAA;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.5rem;">รูปแบบ Output</p>', unsafe_allow_html=True)
     output_format = st.radio(
-        "เลือก format",
+        "รูปแบบ Output",
         ["DOCX", "PDF", "DOCX และ PDF"],
         help="PDF ต้องการ Microsoft Word หรือ LibreOffice",
-        label_visibility="collapsed",
     )
 
     st.divider()
@@ -427,16 +363,16 @@ with st.sidebar:
 # ─── Main Header ──────────────────────────────────────────────────────────────
 if "Single" in mode:
     st.markdown("""
-    <div class="main-header">
-        <h1>สร้างเอกสาร</h1>
-        <p>อัปโหลด Template แล้วกรอกข้อมูลเพื่อสร้างเอกสาร Word</p>
+    <div style="padding:0.25rem 0 1.5rem 0; border-bottom:1px solid #E7E2DA; margin-bottom:1.75rem;">
+        <div style="font-size:1.6rem; font-weight:700; color:#1C1917; letter-spacing:-0.02em; line-height:1.2;">สร้างเอกสาร</div>
+        <div style="font-size:0.9rem; color:#57534E; margin-top:0.35rem;">อัปโหลด Template แล้วกรอกข้อมูลเพื่อสร้างเอกสาร Word</div>
     </div>
     """, unsafe_allow_html=True)
 else:
     st.markdown("""
-    <div class="main-header">
-        <h1>Batch Generation</h1>
-        <p>อัปโหลด Template + CSV เพื่อสร้างเอกสารหลายไฟล์พร้อมกัน</p>
+    <div style="padding:0.25rem 0 1.5rem 0; border-bottom:1px solid #E7E2DA; margin-bottom:1.75rem;">
+        <div style="font-size:1.6rem; font-weight:700; color:#1C1917; letter-spacing:-0.02em; line-height:1.2;">Batch Generation</div>
+        <div style="font-size:0.9rem; color:#57534E; margin-top:0.35rem;">อัปโหลด Template + CSV เพื่อสร้างเอกสารหลายไฟล์พร้อมกัน</div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -456,10 +392,10 @@ if "Single" in mode:
 
     if not uploaded_file:
         st.markdown("""
-        <div style="text-align:center; padding: 3rem 0; color: #BBB;">
-            <div style="font-size: 2.5rem; margin-bottom: 0.75rem;">☁️</div>
-            <div style="font-size: 0.95rem; color: #999;">ลากไฟล์มาวางที่นี่ หรือคลิกเพื่อเลือกไฟล์</div>
-            <div style="font-size: 0.8rem; color: #CCC; margin-top: 0.25rem;">รองรับเฉพาะ .docx เท่านั้น</div>
+        <div style="text-align:center; padding: 2.5rem 0;">
+            <div style="font-size: 2.25rem; margin-bottom: 0.6rem; line-height:1;">📂</div>
+            <div style="font-size: 0.95rem; color: #44403C; font-weight:500;">ลากไฟล์มาวางที่นี่ หรือคลิกเพื่อเลือกไฟล์</div>
+            <div style="font-size: 0.82rem; color: #78716C; margin-top: 0.3rem;">รองรับเฉพาะ .docx เท่านั้น</div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -479,15 +415,15 @@ if "Single" in mode:
                 # แสดง badge ตัวแปรที่พบ
                 badges = "".join([f'<span class="var-badge">{v}</span>' for v in vars_list])
                 st.markdown(
-                    f'<div style="background:#FDFCF8;border:1px solid #EEEBE4;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;">'
-                    f'<span style="font-size:0.78rem;color:#AAA;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;">พบ {len(vars_list)} ตัวแปร</span>'
+                    f'<div class="info-panel">'
+                    f'<div class="info-panel-title">พบ {len(vars_list)} ตัวแปรในเทมเพลต</div>'
                     f'<div style="margin-top:0.4rem">{badges}</div>'
                     f'</div>',
                     unsafe_allow_html=True,
                 )
 
                 with st.form("single_form"):
-                    st.markdown('<p style="font-size:0.78rem;font-weight:600;color:#AAA;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:1rem;">กรอกข้อมูล</p>', unsafe_allow_html=True)
+                    st.markdown('<p class="section-label-th">กรอกข้อมูลสำหรับแต่ละตัวแปร</p>', unsafe_allow_html=True)
                     context: dict = {}
 
                     if len(vars_list) > 3:
@@ -560,12 +496,12 @@ if "Single" in mode:
 else:
     col1, col2 = st.columns(2, gap="large")
     with col1:
-        st.markdown('<p style="font-size:0.78rem;font-weight:600;color:#AAA;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.5rem;">1 · Word Template</p>', unsafe_allow_html=True)
+        st.markdown('<p class="section-label-th">ขั้นตอนที่ 1 — Word Template (.docx)</p>', unsafe_allow_html=True)
         uploaded_template = st.file_uploader(
             "Word Template", type=["docx"], label_visibility="collapsed"
         )
     with col2:
-        st.markdown('<p style="font-size:0.78rem;font-weight:600;color:#AAA;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.5rem;">2 · ไฟล์ข้อมูล CSV</p>', unsafe_allow_html=True)
+        st.markdown('<p class="section-label-th">ขั้นตอนที่ 2 — ไฟล์ข้อมูล (.csv)</p>', unsafe_allow_html=True)
         uploaded_csv = st.file_uploader(
             "CSV File",
             type=["csv"],
@@ -582,8 +518,8 @@ else:
             if variables:
                 badges = "".join([f'<span class="var-badge">{v}</span>' for v in sorted(variables)])
                 st.markdown(
-                    f'<div style="background:#FDFCF8;border:1px solid #EEEBE4;border-radius:8px;padding:0.75rem 1rem;margin:1rem 0;">'
-                    f'<span style="font-size:0.78rem;color:#AAA;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;">พบ {len(variables)} ตัวแปร — ดาวน์โหลด CSV Template แล้วกรอกข้อมูล</span>'
+                    f'<div class="info-panel" style="margin-top:1rem;">'
+                    f'<div class="info-panel-title">พบ {len(variables)} ตัวแปร — ดาวน์โหลด CSV Template แล้วกรอกข้อมูลก่อนอัปโหลด</div>'
                     f'<div style="margin-top:0.4rem">{badges}</div>'
                     f'</div>',
                     unsafe_allow_html=True,
@@ -613,16 +549,16 @@ else:
             c1, c2 = st.columns(2)
             with c1:
                 st.markdown(
-                    f'<div style="background:#FFFFFF;border:1px solid #EEEBE4;border-radius:10px;padding:1rem 1.25rem;">'
-                    f'<div style="font-size:0.75rem;color:#AAA;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;">จำนวนแถว</div>'
-                    f'<div style="font-size:1.8rem;font-weight:600;color:#1A1A1A;margin-top:0.1rem;">{len(df)}</div>'
+                    f'<div class="stat-card">'
+                    f'<div class="stat-card-label">จำนวนแถวข้อมูล</div>'
+                    f'<div class="stat-card-value">{len(df)}</div>'
                     f'</div>', unsafe_allow_html=True
                 )
             with c2:
                 st.markdown(
-                    f'<div style="background:#FFFFFF;border:1px solid #EEEBE4;border-radius:10px;padding:1rem 1.25rem;">'
-                    f'<div style="font-size:0.75rem;color:#AAA;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;">จำนวนคอลัมน์</div>'
-                    f'<div style="font-size:1.8rem;font-weight:600;color:#1A1A1A;margin-top:0.1rem;">{len(df.columns)}</div>'
+                    f'<div class="stat-card">'
+                    f'<div class="stat-card-label">จำนวนคอลัมน์</div>'
+                    f'<div class="stat-card-value">{len(df.columns)}</div>'
                     f'</div>', unsafe_allow_html=True
                 )
 
