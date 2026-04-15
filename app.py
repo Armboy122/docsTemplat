@@ -188,23 +188,49 @@ button[kind="primary"]:hover {
 </style>
 """, unsafe_allow_html=True)
 
-# ─── Helper: ตรวจชื่อตัวแปรแล้วเลือก input widget ที่เหมาะสม ─────────────────
-def get_input_widget(var: str, label: str, key: str):
+# ─── ประเภท input ที่รองรับ ────────────────────────────────────────────────────
+INPUT_TYPES = {
+    "text":     "ข้อความ (Text)",
+    "textarea": "ข้อความยาว (Textarea)",
+    "date":     "วันที่ (Date Picker)",
+    "email":    "อีเมล (Email)",
+    "phone":    "เบอร์โทรศัพท์",
+    "number":   "ตัวเลข (Number)",
+}
+INPUT_TYPE_KEYS = list(INPUT_TYPES.keys())
+INPUT_TYPE_LABELS = list(INPUT_TYPES.values())
+
+# ─── Helper: เดาประเภทเริ่มต้นจากชื่อตัวแปร (ใช้เป็น default เท่านั้น) ────────
+def guess_type(var: str) -> str:
     v = var.lower()
     if re.search(r"date|วันที่|วันเกิด|start_date|end_date|เริ่ม|สิ้นสุด", v):
+        return "date"
+    if re.search(r"note|detail|description|remark|address|ที่อยู่|หมายเหตุ|รายละเอียด", v):
+        return "textarea"
+    if re.search(r"email|อีเมล", v):
+        return "email"
+    if re.search(r"phone|tel|mobile|โทร|เบอร์", v):
+        return "phone"
+    if re.search(r"amount|price|cost|salary|ราคา|เงิน|ค่า|จำนวนเงิน|budget", v):
+        return "number"
+    return "text"
+
+# ─── Helper: render widget ตามประเภทที่ user กำหนด ────────────────────────────
+def render_widget_by_type(var: str, label: str, input_type: str, key: str):
+    if input_type == "date":
         val = st.date_input(label, key=key)
         return val.strftime("%d/%m/%Y")
-    elif re.search(r"note|detail|description|remark|address|ที่อยู่|หมายเหตุ|รายละเอียด", v):
-        return st.text_area(label, key=key, placeholder=f"กรอก {label}", height=80)
-    elif re.search(r"email|อีเมล", v):
+    if input_type == "textarea":
+        return st.text_area(label, key=key, placeholder=f"กรอก {label}", height=100)
+    if input_type == "email":
         return st.text_input(label, key=key, placeholder="example@email.com")
-    elif re.search(r"phone|tel|mobile|โทร|เบอร์", v):
+    if input_type == "phone":
         return st.text_input(label, key=key, placeholder="0XX-XXX-XXXX")
-    elif re.search(r"amount|price|cost|salary|ราคา|เงิน|ค่า|จำนวนเงิน|budget", v):
+    if input_type == "number":
         val = st.number_input(label, key=key, min_value=0.0, step=1.0, format="%.2f")
         return f"{val:,.2f}"
-    else:
-        return st.text_input(label, key=key, placeholder=f"กรอก {label}")
+    # default: text
+    return st.text_input(label, key=key, placeholder=f"กรอก {label}")
 
 # ─── Helper: สร้าง sample template ───────────────────────────────────────────
 @st.cache_data
@@ -287,24 +313,26 @@ def convert_to_pdf(docx_bytes: bytes) -> bytes:
 # ─── Helper: Step Indicator ───────────────────────────────────────────────────
 def show_steps(current: int):
     steps = [
-        ("1", "อัปโหลด Template"),
-        ("2", "กรอกข้อมูล"),
-        ("3", "ดาวน์โหลด"),
+        ("1", "อัปโหลด"),
+        ("2", "กำหนดประเภท"),
+        ("3", "กรอกข้อมูล"),
+        ("4", "ดาวน์โหลด"),
     ]
     parts = []
     for i, (num, label) in enumerate(steps, start=1):
         state = "done" if i < current else ("active" if i == current else "idle")
-        parts.append(f"""
-        <div class="step-item">
-            <div class="step-dot {state}">{("✓" if state == "done" else num)}</div>
-            <span class="step-label {state}">{label}</span>
-        </div>
-        """)
+        dot_content = "✓" if state == "done" else num
+        parts.append(
+            f'<div class="step-item">'
+            f'<div class="step-dot {state}">{dot_content}</div>'
+            f'<span class="step-label {state}">{label}</span>'
+            f'</div>'
+        )
         if i < len(steps):
             parts.append('<div class="step-line"></div>')
 
     st.markdown(
-        f'<div class="step-container">{"".join(parts)}</div>',
+        f'<div class="step-wrap">{"".join(parts)}</div>',
         unsafe_allow_html=True,
     )
 
@@ -381,6 +409,11 @@ else:
 # ══════════════════════════════════════════════════════════════════════════════
 if "Single" in mode:
 
+    # ── state keys ─────────────────────────────────────────────────────────────
+    # var_types_confirmed  : bool — ผ่านขั้นตอนกำหนดประเภทแล้ว
+    # var_types            : dict[var, type_key] — ประเภทที่ user เลือก
+    # current_template_key : str — ชื่อไฟล์ เพื่อ reset state เมื่อเปลี่ยนไฟล์
+
     show_steps(1)
 
     uploaded_file = st.file_uploader(
@@ -392,14 +425,20 @@ if "Single" in mode:
 
     if not uploaded_file:
         st.markdown("""
-        <div style="text-align:center; padding: 2.5rem 0;">
-            <div style="font-size: 2.25rem; margin-bottom: 0.6rem; line-height:1;">📂</div>
-            <div style="font-size: 0.95rem; color: #44403C; font-weight:500;">ลากไฟล์มาวางที่นี่ หรือคลิกเพื่อเลือกไฟล์</div>
-            <div style="font-size: 0.82rem; color: #78716C; margin-top: 0.3rem;">รองรับเฉพาะ .docx เท่านั้น</div>
+        <div style="text-align:center; padding:2.5rem 0;">
+            <div style="font-size:2.25rem; margin-bottom:0.6rem; line-height:1;">📂</div>
+            <div style="font-size:0.95rem; color:#44403C; font-weight:500;">ลากไฟล์มาวางที่นี่ หรือคลิกเพื่อเลือกไฟล์</div>
+            <div style="font-size:0.82rem; color:#78716C; margin-top:0.3rem;">รองรับเฉพาะ .docx เท่านั้น</div>
         </div>
         """, unsafe_allow_html=True)
 
     if uploaded_file:
+        # Reset state เมื่อเปลี่ยนไฟล์
+        if st.session_state.get("current_template_key") != uploaded_file.name:
+            st.session_state["current_template_key"] = uploaded_file.name
+            st.session_state.pop("var_types", None)
+            st.session_state.pop("var_types_confirmed", None)
+
         try:
             template_bytes = uploaded_file.read()
             doc = DocxTemplate(io.BytesIO(template_bytes))
@@ -408,83 +447,155 @@ if "Single" in mode:
             if not variables:
                 st.warning("ไม่พบตัวแปรใดๆ ในเทมเพลตนี้ — ลองดาวน์โหลด Sample Template ใน sidebar")
             else:
-                show_steps(2)
-
                 vars_list = sorted(variables)
 
-                # แสดง badge ตัวแปรที่พบ
-                badges = "".join([f'<span class="var-badge">{v}</span>' for v in vars_list])
-                st.markdown(
-                    f'<div class="info-panel">'
-                    f'<div class="info-panel-title">พบ {len(vars_list)} ตัวแปรในเทมเพลต</div>'
-                    f'<div style="margin-top:0.4rem">{badges}</div>'
-                    f'</div>',
-                    unsafe_allow_html=True,
-                )
+                # ══════════════════════════════════════════════════════════════
+                # ขั้นตอน 2 — กำหนดประเภท input ของแต่ละตัวแปร
+                # ══════════════════════════════════════════════════════════════
+                if not st.session_state.get("var_types_confirmed"):
+                    show_steps(2)
 
-                with st.form("single_form"):
-                    st.markdown('<p class="section-label-th">กรอกข้อมูลสำหรับแต่ละตัวแปร</p>', unsafe_allow_html=True)
-                    context: dict = {}
+                    st.markdown(
+                        '<p class="section-label-th">กำหนดประเภท Input สำหรับแต่ละตัวแปร</p>',
+                        unsafe_allow_html=True,
+                    )
+                    st.caption("ระบบเดาประเภทเริ่มต้นให้แล้ว — สามารถเปลี่ยนได้ก่อนกรอกข้อมูล")
 
-                    if len(vars_list) > 3:
-                        col1, col2 = st.columns(2, gap="large")
-                        for i, var in enumerate(vars_list):
-                            label = var.replace("_", " ").title()
-                            with col1 if i % 2 == 0 else col2:
-                                context[var] = get_input_widget(var, label, key=f"s_{var}")
-                    else:
-                        for var in vars_list:
-                            label = var.replace("_", " ").title()
-                            context[var] = get_input_widget(var, label, key=f"s_{var}")
+                    st.markdown("<div style='height:0.75rem'></div>", unsafe_allow_html=True)
 
-                    st.markdown("<div style='margin-top:1.5rem'></div>", unsafe_allow_html=True)
-                    submitted = st.form_submit_button(
-                        "สร้างเอกสาร", use_container_width=True, type="primary"
+                    # ── header row ──────────────────────────────────────────
+                    h1, h2 = st.columns([2, 2], gap="medium")
+                    with h1:
+                        st.markdown(
+                            '<div style="font-size:0.72rem;font-weight:700;color:#78716C;'
+                            'letter-spacing:0.07em;text-transform:uppercase;'
+                            'padding-bottom:0.4rem;border-bottom:1px solid #E7E2DA;">ชื่อตัวแปร</div>',
+                            unsafe_allow_html=True,
+                        )
+                    with h2:
+                        st.markdown(
+                            '<div style="font-size:0.72rem;font-weight:700;color:#78716C;'
+                            'letter-spacing:0.07em;text-transform:uppercase;'
+                            'padding-bottom:0.4rem;border-bottom:1px solid #E7E2DA;">ประเภท Input</div>',
+                            unsafe_allow_html=True,
+                        )
+
+                    # ── selector rows ────────────────────────────────────────
+                    pending_types: dict = {}
+                    for var in vars_list:
+                        default_type = st.session_state.get("var_types", {}).get(var, guess_type(var))
+                        default_idx = INPUT_TYPE_KEYS.index(default_type) if default_type in INPUT_TYPE_KEYS else 0
+
+                        c_name, c_type = st.columns([2, 2], gap="medium")
+                        with c_name:
+                            st.markdown(
+                                f'<div style="padding:0.55rem 0; font-size:0.92rem; '
+                                f'font-weight:500; color:#1C1917; font-family:monospace;">'
+                                f'<span class="var-badge">{var}</span></div>',
+                                unsafe_allow_html=True,
+                            )
+                        with c_type:
+                            chosen = st.selectbox(
+                                label=var,
+                                options=INPUT_TYPE_LABELS,
+                                index=default_idx,
+                                key=f"type_sel_{var}",
+                                label_visibility="collapsed",
+                            )
+                            pending_types[var] = INPUT_TYPE_KEYS[INPUT_TYPE_LABELS.index(chosen)]
+
+                    st.markdown("<div style='height:1rem'></div>", unsafe_allow_html=True)
+
+                    if st.button("ยืนยันประเภท และไปกรอกข้อมูล →", type="primary", use_container_width=True):
+                        st.session_state["var_types"] = pending_types
+                        st.session_state["var_types_confirmed"] = True
+                        st.rerun()
+
+                # ══════════════════════════════════════════════════════════════
+                # ขั้นตอน 3 — กรอกข้อมูล
+                # ══════════════════════════════════════════════════════════════
+                else:
+                    show_steps(3)
+
+                    var_types: dict = st.session_state["var_types"]
+
+                    # ปุ่มกลับไปแก้ประเภท
+                    if st.button("← แก้ไขประเภท Input", type="secondary"):
+                        st.session_state["var_types_confirmed"] = False
+                        st.rerun()
+
+                    st.markdown("<div style='height:0.5rem'></div>", unsafe_allow_html=True)
+                    st.markdown(
+                        '<p class="section-label-th">กรอกข้อมูลสำหรับแต่ละตัวแปร</p>',
+                        unsafe_allow_html=True,
                     )
 
-                if submitted:
-                    empty = [k for k, v in context.items() if not str(v).strip()]
-                    if empty:
-                        st.error("กรุณากรอกให้ครบ ยังขาด: " + ", ".join(empty))
-                    else:
-                        with st.spinner("กำลังสร้างเอกสาร..."):
-                            docx_output = render_doc(template_bytes, context)
+                    with st.form("single_form"):
+                        context: dict = {}
 
-                        show_steps(3)
-                        st.success("สร้างเอกสารสำเร็จ")
-
-                        base_name = uploaded_file.name.replace(".docx", "_filled")
-                        want_docx = "DOCX" in output_format
-                        want_pdf  = "PDF"  in output_format
-
-                        dl_cols = st.columns(2) if (want_docx and want_pdf) else [st.container()]
-
-                        if want_docx:
-                            with dl_cols[0]:
-                                st.download_button(
-                                    label="ดาวน์โหลด DOCX",
-                                    data=docx_output,
-                                    file_name=f"{base_name}.docx",
-                                    mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                                    use_container_width=True,
-                                    type="primary",
+                        if len(vars_list) > 3:
+                            col1, col2 = st.columns(2, gap="large")
+                            for i, var in enumerate(vars_list):
+                                label = var.replace("_", " ")
+                                with col1 if i % 2 == 0 else col2:
+                                    context[var] = render_widget_by_type(
+                                        var, label, var_types.get(var, "text"), key=f"fill_{var}"
+                                    )
+                        else:
+                            for var in vars_list:
+                                label = var.replace("_", " ")
+                                context[var] = render_widget_by_type(
+                                    var, label, var_types.get(var, "text"), key=f"fill_{var}"
                                 )
 
-                        if want_pdf:
-                            with (dl_cols[1] if want_docx else dl_cols[0]):
-                                with st.spinner("กำลังแปลงเป็น PDF..."):
-                                    try:
-                                        pdf_output = convert_to_pdf(docx_output)
-                                        st.download_button(
-                                            label="ดาวน์โหลด PDF",
-                                            data=pdf_output,
-                                            file_name=f"{base_name}.pdf",
-                                            mime="application/pdf",
-                                            use_container_width=True,
-                                            type="primary",
-                                        )
-                                    except RuntimeError as pdf_err:
-                                        st.error(f"แปลง PDF ไม่ได้: {pdf_err}")
+                        st.markdown("<div style='height:1rem'></div>", unsafe_allow_html=True)
+                        submitted = st.form_submit_button(
+                            "สร้างเอกสาร", use_container_width=True, type="primary"
+                        )
+
+                    if submitted:
+                        empty = [k for k, v in context.items() if not str(v).strip()]
+                        if empty:
+                            st.error("กรุณากรอกให้ครบ ยังขาด: " + ", ".join(empty))
+                        else:
+                            with st.spinner("กำลังสร้างเอกสาร..."):
+                                docx_output = render_doc(template_bytes, context)
+
+                            show_steps(4)
+                            st.success("สร้างเอกสารสำเร็จ")
+
+                            base_name = uploaded_file.name.replace(".docx", "_filled")
+                            want_docx = "DOCX" in output_format
+                            want_pdf  = "PDF"  in output_format
+
+                            dl_cols = st.columns(2) if (want_docx and want_pdf) else [st.container()]
+
+                            if want_docx:
+                                with dl_cols[0]:
+                                    st.download_button(
+                                        label="ดาวน์โหลด DOCX",
+                                        data=docx_output,
+                                        file_name=f"{base_name}.docx",
+                                        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                                        use_container_width=True,
+                                        type="primary",
+                                    )
+
+                            if want_pdf:
+                                with (dl_cols[1] if want_docx else dl_cols[0]):
+                                    with st.spinner("กำลังแปลงเป็น PDF..."):
+                                        try:
+                                            pdf_output = convert_to_pdf(docx_output)
+                                            st.download_button(
+                                                label="ดาวน์โหลด PDF",
+                                                data=pdf_output,
+                                                file_name=f"{base_name}.pdf",
+                                                mime="application/pdf",
+                                                use_container_width=True,
+                                                type="primary",
+                                            )
+                                        except RuntimeError as pdf_err:
+                                            st.error(f"แปลง PDF ไม่ได้: {pdf_err}")
 
         except Exception as e:
             st.error(f"ไม่สามารถอ่านไฟล์ได้: {e}")
