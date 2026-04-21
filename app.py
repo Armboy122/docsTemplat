@@ -262,6 +262,23 @@ def create_sample_template() -> bytes:
     buf.seek(0)
     return buf.read()
 
+
+def dataframe_to_excel_bytes(df: pd.DataFrame) -> bytes:
+    buf = io.BytesIO()
+    with pd.ExcelWriter(buf, engine="openpyxl") as writer:
+        df.to_excel(writer, index=False, sheet_name="Data")
+    buf.seek(0)
+    return buf.read()
+
+
+def read_tabular_upload(uploaded_file) -> pd.DataFrame:
+    file_name = (uploaded_file.name or "").lower()
+    if file_name.endswith(".xlsx"):
+        return pd.read_excel(uploaded_file, dtype=str).fillna("")
+    if file_name.endswith(".csv"):
+        return pd.read_csv(uploaded_file, dtype=str).fillna("")
+    raise ValueError("รองรับเฉพาะไฟล์ .xlsx และ .csv")
+
 # ─── Helper: เรนเดอร์เทมเพลต ─────────────────────────────────────────────────
 def render_doc(template_bytes: bytes, context: dict) -> bytes:
     doc = DocxTemplate(io.BytesIO(template_bytes))
@@ -348,8 +365,8 @@ with st.sidebar:
 
     mode = st.radio(
         "โหมดการใช้งาน",
-        ["Single — กรอกทีละเอกสาร", "Batch — สร้างจาก CSV"],
-        help="Single: กรอกข้อมูลเองทีละชุด | Batch: นำเข้า CSV สร้างหลายไฟล์พร้อมกัน",
+        ["Single — กรอกทีละเอกสาร", "Batch — สร้างจาก Excel/CSV"],
+        help="Single: กรอกข้อมูลเองทีละชุด | Batch: นำเข้า Excel หรือ CSV เพื่อสร้างหลายไฟล์พร้อมกัน",
     )
 
     st.divider()
@@ -400,7 +417,7 @@ else:
     st.markdown("""
     <div style="padding:0.25rem 0 1.5rem 0; border-bottom:1px solid #E7E2DA; margin-bottom:1.75rem;">
         <div style="font-size:1.6rem; font-weight:700; color:#1C1917; letter-spacing:-0.02em; line-height:1.2;">Batch Generation</div>
-        <div style="font-size:0.9rem; color:#57534E; margin-top:0.35rem;">อัปโหลด Template + CSV เพื่อสร้างเอกสารหลายไฟล์พร้อมกัน</div>
+        <div style="font-size:0.9rem; color:#57534E; margin-top:0.35rem;">อัปโหลด Template + Excel/CSV เพื่อสร้างเอกสารหลายไฟล์พร้อมกัน</div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -612,16 +629,16 @@ else:
             "Word Template", type=["docx"], label_visibility="collapsed"
         )
     with col2:
-        st.markdown('<p class="section-label-th">ขั้นตอนที่ 2 — ไฟล์ข้อมูล (.csv)</p>', unsafe_allow_html=True)
-        uploaded_csv = st.file_uploader(
-            "CSV File",
-            type=["csv"],
-            help="Row แรกต้องเป็น header ชื่อตรงกับตัวแปรใน Template",
+        st.markdown('<p class="section-label-th">ขั้นตอนที่ 2 — ไฟล์ข้อมูล (.xlsx, .csv)</p>', unsafe_allow_html=True)
+        uploaded_data = st.file_uploader(
+            "Data File",
+            type=["xlsx", "csv"],
+            help="Row แรกต้องเป็น header ชื่อตรงกับตัวแปรใน Template แนะนำให้ใช้ Excel สำหรับข้อมูลภาษาไทย",
             label_visibility="collapsed",
         )
 
-    # ── อัปโหลด Template แล้ว ยังไม่มี CSV ───────────────────────────────────
-    if uploaded_template and not uploaded_csv:
+    # ── อัปโหลด Template แล้ว ยังไม่มีไฟล์ข้อมูล ───────────────────────────────
+    if uploaded_template and not uploaded_data:
         try:
             tmpl_b = uploaded_template.read()
             doc = DocxTemplate(io.BytesIO(tmpl_b))
@@ -630,29 +647,39 @@ else:
                 badges = "".join([f'<span class="var-badge">{v}</span>' for v in sorted(variables)])
                 st.markdown(
                     f'<div class="info-panel" style="margin-top:1rem;">'
-                    f'<div class="info-panel-title">พบ {len(variables)} ตัวแปร — ดาวน์โหลด CSV Template แล้วกรอกข้อมูลก่อนอัปโหลด</div>'
+                    f'<div class="info-panel-title">พบ {len(variables)} ตัวแปร — ดาวน์โหลด Excel Template แล้วกรอกข้อมูลก่อนอัปโหลด</div>'
                     f'<div style="margin-top:0.4rem">{badges}</div>'
                     f'</div>',
                     unsafe_allow_html=True,
                 )
                 sample_df = pd.DataFrame(columns=sorted(variables))
-                st.download_button(
-                    "ดาวน์โหลด CSV Template",
-                    data=sample_df.to_csv(index=False),
-                    file_name="data_template.csv",
-                    mime="text/csv",
-                    use_container_width=True,
-                )
+                dl_col1, dl_col2 = st.columns(2)
+                with dl_col1:
+                    st.download_button(
+                        "ดาวน์โหลด Excel Template",
+                        data=dataframe_to_excel_bytes(sample_df),
+                        file_name="data_template.xlsx",
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        use_container_width=True,
+                    )
+                with dl_col2:
+                    st.download_button(
+                        "ดาวน์โหลด CSV Template",
+                        data=sample_df.to_csv(index=False),
+                        file_name="data_template.csv",
+                        mime="text/csv",
+                        use_container_width=True,
+                    )
                 st.dataframe(sample_df, use_container_width=True)
             st.session_state["tmpl_bytes"] = tmpl_b
         except Exception as e:
             st.error(f"อ่านไฟล์ Template ไม่ได้: {e}")
 
     # ── อัปโหลดครบทั้งคู่ ────────────────────────────────────────────────────
-    if uploaded_template and uploaded_csv:
+    if uploaded_template and uploaded_data:
         try:
             tmpl_b = uploaded_template.read()
-            df = pd.read_csv(uploaded_csv, dtype=str).fillna("")
+            df = read_tabular_upload(uploaded_data)
 
             st.markdown("<div style='margin-top:1rem'></div>", unsafe_allow_html=True)
 
